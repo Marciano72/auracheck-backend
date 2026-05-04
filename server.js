@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
@@ -13,21 +12,26 @@ const client = new OpenAI({
 });
 
 const SYSTEM_PROMPT = `
-Je bent AuraCheck AI, een respectvolle Nederlandse coach voor eerste indruk, verzorging, stijl en body presence.
+Je bent AuraCheck AI, een respectvolle Nederlandse coach voor uitstraling, verzorging en presence.
 
-Regels:
-- Beledig nooit.
-- Gebruik nooit woorden zoals lelijk, dik, onaantrekkelijk, slecht lichaam of lage waarde.
-- Schat geen exact gewicht, BMI, leeftijd, etniciteit of medische toestand.
-- Geef geen attractiveness score.
-- Geef alleen respectvolle observaties over presentatie, houding, verzorging, kleding, licht en algemene uitstraling.
+Belangrijk:
+- Geen oordeel over wie iemand is.
+- Gebruik nooit woorden zoals lelijk, dik, onaantrekkelijk of slecht lichaam.
+- Geef geen medische diagnose.
+- Geef geen exacte gewichtsschatting.
+- Geef geen leeftijd, etniciteit, BMI of attractiveness score.
+- Geef alleen respectvol advies over houding, uitstraling, kleding, licht, verzorging en algemene presentatie.
 - Gebruik woorden zoals krachtiger, frisser, verzorgder, betere pasvorm, meer balans, zelfverzekerder.
-- Body advies moet algemeen en niet-medisch blijven.
-- Geef concreet, persoonlijk en praktisch advies.
+- Body advies blijft algemeen en niet-medisch.
+- Advies moet specifiek zijn voor wat zichtbaar is in de foto.
 - Houd rekening met de gekozen mode: dating, business of social.
-- Eindig altijd met dat dit geen oordeel is over wie iemand is.
 
-Geef alleen geldige JSON terug met exact deze keys:
+Context:
+- dating = warmte, benaderbaarheid, zelfvertrouwen, verzorgde eerste indruk.
+- business = professionaliteit, betrouwbaarheid, autoriteit, rust.
+- social = energie, vibe, persoonlijkheid, herkenbaarheid.
+
+Geef ALLEEN geldige JSON terug in exact dit formaat:
 {
   "impressionTitle": "",
   "summary": "",
@@ -49,13 +53,13 @@ app.post("/api/analyze", async (req, res) => {
 
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({
-        error: "OPENAI_API_KEY ontbreekt in Render Environment Variables.",
+        error: "OPENAI_API_KEY ontbreekt in Render Environment Variables."
       });
     }
 
     if (!imageBase64) {
       return res.status(400).json({
-        error: "imageBase64 ontbreekt.",
+        error: "Geen afbeelding ontvangen."
       });
     }
 
@@ -64,27 +68,32 @@ app.post("/api/analyze", async (req, res) => {
       input: [
         {
           role: "system",
-          content: [{ type: "input_text", text: SYSTEM_PROMPT }],
+          content: [
+            {
+              type: "input_text",
+              text: SYSTEM_PROMPT
+            }
+          ]
         },
         {
           role: "user",
           content: [
             {
               type: "input_text",
-              text: `Analyseer deze foto voor context: ${mode}. Schrijf in het Nederlands. Maak het advies specifiek voor wat zichtbaar is in de foto.`,
+              text: `Analyseer deze foto voor de context: ${mode}. Schrijf in het Nederlands. Geef concreet, persoonlijk en respectvol advies gebaseerd op wat zichtbaar is.`
             },
             {
               type: "input_image",
-              image_url: `data:image/jpeg;base64,${imageBase64}`,
-            },
-          ],
-        },
+              image_url: `data:image/jpeg;base64,${imageBase64}`
+            }
+          ]
+        }
       ],
       text: {
         format: {
-          type: "json_object",
-        },
-      },
+          type: "json_object"
+        }
+      }
     });
 
     const parsed = JSON.parse(response.output_text);
@@ -93,8 +102,8 @@ app.post("/api/analyze", async (req, res) => {
     console.error("AI ERROR:", error);
 
     res.status(500).json({
-      error: "AI analysis failed",
-      message: error.message,
+      error: "AI analyse mislukt",
+      message: error.message
     });
   }
 });
